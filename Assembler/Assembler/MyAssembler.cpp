@@ -63,7 +63,9 @@ void MyAssembler::generateTables()
 MyAssembler::MyAssembler(string cfPath)
 {
 	DataRam.resize(2048);
-	codePointer = labelPointer = 10; // starting address of code segment
+	int endofdataSeg = 50;
+	dataSeg.resize(endofdataSeg); // data segment is 50 words
+	codePointer = labelPointer = endofdataSeg; // starting address of code segment
 	extraWords = 0;
 	syntaxError = false;
 	numLine = 1;
@@ -255,16 +257,21 @@ void MyAssembler::toUpperCase(string &str)
 
 void MyAssembler::run()
 {
-	scanDataSegment();
+	//scanDataSegment();
 	scanLables();
 	this->codeFile.open(this->codeFilePath);
 	string line;
 	bool foundCode = false;
 	while (!this->codeFile.eof() && !syntaxError) {
 		getline(codeFile, line);
-		toUpperCase(line);
+		/*toUpperCase(line);
 		if (line == ".CODE")foundCode = true;
-		if (!foundCode || line == ".CODE")continue;
+		if (!foundCode || line == ".CODE")continue;*/
+		if (line == "") {
+			numLine++;
+			scanDataSegment();
+			break;
+		}
 		lineParsing(line);
 		numLine++;
 	}
@@ -374,6 +381,26 @@ void MyAssembler::errorMessege()
 
 void MyAssembler::scanDataSegment()
 {
+
+	int address, data;
+	while (!this->codeFile.eof() && !syntaxError) {
+		codeFile >> address >> data;
+		if (address >= dataSeg.size() - 1) {
+			cout << "Data Segmnet error --" <<  address  
+				<< " is invalid address" << endl;
+			cout << "Line (" << numLine << ")" << endl;
+			syntaxError = true;
+			break;
+		}
+		string num = int2Binary(data, !Twos_Complement);
+		while (num.size() < 32) {
+			num = "0" + num;
+		}
+		dataSeg[address] = num.substr(16, 16);
+		dataSeg[address+1] = num.substr(0, 16);
+		numLine++;
+	}
+	/*
 	string line;
 	bool foundData = false;
 	while (!this->codeFile.eof() && !syntaxError) {
@@ -402,6 +429,7 @@ void MyAssembler::scanDataSegment()
 			dataSeg.push_back(num.substr(0, 16));
 		}
 	}
+	*/
 }
 
 void MyAssembler::scanLables()
