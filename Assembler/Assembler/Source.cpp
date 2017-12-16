@@ -3,12 +3,13 @@
 #include<fstream>
 using namespace std;
 string codeFilePath = "code.txt";
+string ramFilePath = "binaryCode.txt";
 int main()
 {
-	MyAssembler Assembler(codeFilePath);
+	MyAssembler Assembler(codeFilePath, ramFilePath);
 	Assembler.run();
 	if (!Assembler.get_syntaxError()) {
-		cout << "Done" << endl;
+		cout << "Done -- Have Fun" << endl;
 	}
 	return 0;
 }

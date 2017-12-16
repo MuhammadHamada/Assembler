@@ -10,10 +10,11 @@ using namespace std;
 #define Branch 2
 #define NoOperand 3
 /* addressing modes */
-#define indexed 0
+#define Direct 0
 #define Auto_Decrement 1
 #define Auto_Increment 2
-#define Direct 3
+#define indexed 3
+
 /* Registers */
 #define R0 0
 #define R1 1
@@ -27,7 +28,9 @@ class MyAssembler
 {
 	ifstream codeFile; // the file which contains the source code
 	string codeFilePath;
+
 	ofstream binaryCodeFile; // A binary file which conains the source code 
+	string binaryCodeFilePath;
 
 	map<string, string>instrTable; // codes of instructions
 	map<int, string>addrModeTable; // codes of addressing modes
@@ -37,7 +40,7 @@ class MyAssembler
 	vector<pair<string, int>>jsrInstr;
 	vector<string>x_indexedVec; // array of X (indexed mode) - format X(Ri)
 	vector<string>DataRam; // data that will be put in the RAM
-	vector<string>dataSeg;
+
 	bool syntaxError; // boolean to check if there is a syntax error or not
 	int numLine;      // the current line which is been decoding
 	int codePointer;  /* pointer to the address that will be filled by the next
@@ -65,7 +68,7 @@ class MyAssembler
 	void scanDataSegment();
 	void scanLables(); // scan code.txt to find all lables
 public:
-	MyAssembler(string cfPath); // the path of the source code file
+	MyAssembler(string cfPath,string bcPath); // the path of the source code file
 	void run(); // run the Assembler :D
 	bool get_syntaxError(); // getter of syntaxError
 	~MyAssembler();

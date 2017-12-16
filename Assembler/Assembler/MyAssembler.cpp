@@ -6,17 +6,17 @@ using namespace std;
 void MyAssembler::generateTables()
 {
 	/* Generate 2 operand instructions table */
-	instrTable["MOV"] = "000000";
-	instrTable["ADD"] = "000001";
-	instrTable["ADC"] = "000010";
-	instrTable["SUB"] = "000011";
-	instrTable["SBC"] = "000100";
-	instrTable["AND"] = "000101";
-	instrTable["OR"] = "000110";
-	instrTable["XOR"] = "000111";
-	instrTable["BIS"] = "001000";
-	instrTable["BIC"] = "001001";
-	instrTable["CMP"] = "001010";
+	instrTable["ADD"] = "000000";
+	instrTable["ADC"] = "000001";
+	instrTable["SUB"] = "000010";
+	instrTable["SBC"] = "000011";
+	instrTable["AND"] = "000100";
+	instrTable["OR"] = "000101";
+	instrTable["XOR"] = "000110";
+	instrTable["BIC"] = "000111";
+	instrTable["MOV"] = "001000";
+	instrTable["BIS"] = "000101";
+	instrTable["CMP"] = "000010";
 
 	/* Generate 1 operand instructions table */
 	instrTable["INC"] = "010000";
@@ -48,30 +48,28 @@ void MyAssembler::generateTables()
 	instrTable["RTS"] = "110100";
 
 	/* Generate Addressing mode table */
-	addrModeTable[indexed] = "00";
+	addrModeTable[Direct] = "00";
 	addrModeTable[Auto_Decrement] = "01";
 	addrModeTable[Auto_Increment] = "10";
-	addrModeTable[Direct] = "11";
+	addrModeTable[indexed] = "11";
 
 	/* Generate Register table */
-	registerTable[indexed] = "00";
-	registerTable[Auto_Decrement] = "01";
-	registerTable[Auto_Increment] = "10";
-	registerTable[Direct] = "11";
+	registerTable[R0] = "00";
+	registerTable[R1] = "01";
+	registerTable[R2] = "10";
+	registerTable[R3] = "11";
 }
 
-MyAssembler::MyAssembler(string cfPath)
+MyAssembler::MyAssembler(string cfPath,string bcPath)
 {
 	DataRam.resize(2048);
-	int endofdataSeg = 50;
-	dataSeg.resize(endofdataSeg); // data segment is 50 words
-	codePointer = labelPointer = endofdataSeg; // starting address of code segment
+	codePointer = labelPointer = 0; // starting address of code segment
 	extraWords = 0;
 	syntaxError = false;
 	numLine = 1;
 	codeFilePath = cfPath;
 	this->codeFile.open(cfPath);
-	this->binaryCodeFile.open("binaryCode.txt");
+	this->binaryCodeFile.open(bcPath);
 	this->generateTables();
 }
 
@@ -135,7 +133,9 @@ void MyAssembler::lineParsing(string sLine)
 		if (!coma)this->errorMessege();
 		this->operandParsing(src);
 		this->operandParsing(dst);
-		this->DataRam[codePointer] += "00";
+		if(instr == "MOV")this->DataRam[codePointer] += "01";
+		else if (instr == "CMP")this->DataRam[codePointer] += "10";
+		else this->DataRam[codePointer] += "00";
 		codePointer++;
 		printIndexedVec();
 		break;
@@ -357,18 +357,14 @@ void MyAssembler::fillBranchJSRinstr()
 
 void MyAssembler::printDataRAM()
 {
-	for (int i = 0; i < dataSeg.size(); i++) {
-		DataRam[i] = dataSeg[i];
-	}
 	for (int i = 0; i < DataRam.size(); i++) {
-		/*if (DataRam[i] == "") {
+		if (DataRam[i] == "") {
 		for (int j = 0; j < 16; j++) {
 		binaryCodeFile << 0;
 		}
 		binaryCodeFile << endl;
 		continue;
 		}
-		*/
 		binaryCodeFile << DataRam[i] << endl;
 	}
 }
@@ -385,8 +381,8 @@ void MyAssembler::scanDataSegment()
 	int address, data;
 	while (!this->codeFile.eof() && !syntaxError) {
 		codeFile >> address >> data;
-		if (address >= dataSeg.size() - 1) {
-			cout << "Data Segmnet error --" <<  address  
+		if (address < codePointer) {
+			cout << "Data Segmnet error -- " <<  address  
 				<< " is invalid address" << endl;
 			cout << "Line (" << numLine << ")" << endl;
 			syntaxError = true;
@@ -396,40 +392,10 @@ void MyAssembler::scanDataSegment()
 		while (num.size() < 32) {
 			num = "0" + num;
 		}
-		dataSeg[address] = num.substr(16, 16);
-		dataSeg[address+1] = num.substr(0, 16);
+		DataRam[address] = num.substr(16, 16);
+		DataRam[address+1] = num.substr(0, 16);
 		numLine++;
 	}
-	/*
-	string line;
-	bool foundData = false;
-	while (!this->codeFile.eof() && !syntaxError) {
-		getline(codeFile, line);
-		if (line == "")continue;
-		toUpperCase(line);
-		if (line == ".DATA") {
-			foundData = true;
-			continue;
-		}
-		else if (line == ".CODE")break;
-
-		if (foundData) {
-			for (int i = 0; i < line.size(); i++) {
-				if (line[i]<'0' || line[i] > '9') {
-					this->errorMessege();
-					cout << "please insert a decimal number" << endl;
-					return;
-				}
-			}
-			string num = int2Binary(stoi(line), !Twos_Complement);
-			while (num.size() < 32) {
-				num = "0" + num;
-			}
-			dataSeg.push_back(num.substr(16, 16));
-			dataSeg.push_back(num.substr(0, 16));
-		}
-	}
-	*/
 }
 
 void MyAssembler::scanLables()
@@ -481,7 +447,7 @@ MyAssembler::~MyAssembler()
 	this->codeFile.close();
 	if (this->get_syntaxError()) {
 		this->binaryCodeFile.clear();
-		this->binaryCodeFile.open("binaryCode.txt");
+		this->binaryCodeFile.open(this->binaryCodeFilePath);
 		this->binaryCodeFile.close();
 	}
 	this->binaryCodeFile.close();
