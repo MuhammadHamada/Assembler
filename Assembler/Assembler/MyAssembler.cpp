@@ -1,4 +1,5 @@
 #include "MyAssembler.h"
+#include "Utils.h"
 #include <iostream>
 using namespace std;
 
@@ -76,7 +77,7 @@ MyAssembler::MyAssembler(string cfPath,string bcPath)
 void MyAssembler::lineParsing(string sLine)
 {
 	if (sLine == "")return;
-	toUpperCase(sLine);
+	Utils::toUpperCase(sLine);
 
 
 	int lstIndx = 0; // next index on the line that will be parsed
@@ -221,7 +222,7 @@ void MyAssembler::operandParsing(string op)
 		//format --> X(Ri) where i = 0 , 1 , 2 or 3 and X is an offset
 		this->DataRam[codePointer] += addrModeTable[indexed];
 		regNum = (op[siz - 2] - '0');
-		x_indexedVec.push_back(int2Binary(stoi(x_indexed), !Twos_Complement));
+		x_indexedVec.push_back(Utils::int2Binary(stoi(x_indexed), !Twos_Complement));
 	}
 	else {
 		if (!get_syntaxError())
@@ -245,28 +246,15 @@ void MyAssembler::operandParsing(string op)
 	}
 }
 
-void MyAssembler::toUpperCase(string &str)
-{
-	for (int i = 0; i < str.size(); i++)
-	{
-		if (str[i] >= 'a'&&str[i] <= 'z') {
-			str[i] = ('A' + (str[i] - 'a'));
-		}
-	}
-}
 
 void MyAssembler::run()
 {
-	//scanDataSegment();
 	scanLables();
 	this->codeFile.open(this->codeFilePath);
 	string line;
 	bool foundCode = false;
 	while (!this->codeFile.eof() && !syntaxError) {
 		getline(codeFile, line);
-		/*toUpperCase(line);
-		if (line == ".CODE")foundCode = true;
-		if (!foundCode || line == ".CODE")continue;*/
 		if (line == "") {
 			numLine++;
 			scanDataSegment();
@@ -279,48 +267,46 @@ void MyAssembler::run()
 	this->printDataRAM();
 }
 
+void MyAssembler::convertToMemFile(string fpath)
+{
+	ofstream file;
+	file.open(fpath);
+	file << "// memory data file (do not edit the following line - required for mem load use)\n";
+	file << "// instance=/pu/RAM_LAB/MEMORY\n";
+	file << "// format=bin addressradix=h dataradix=b version=1.0 wordsperline=1";
+	file << "wordsperline=1" << endl;
+	for (int i = 0; i < this->DataRam.size(); i++)
+	{
+		if (i <= 0xf) {
+			file << "  @";
+		}
+		else if (i <= 0xff) {
+			file << " @";
+		}
+		else {
+			file << "@";
+		}
+		Utils::decToHexa(i, file);
+		file << " ";
+		if (this->DataRam[i] == "") {
+			int x = 16;
+			while (x--) {
+				file << 'X';
+			}
+		}
+		else {
+			file << this->DataRam[i];
+		}
+		file << endl;
+	}
+
+}
+
 bool MyAssembler::get_syntaxError()
 {
 	return syntaxError;
 }
 
-string MyAssembler::int2Binary(int num, bool twosComp)
-{
-	string ret = "0000000000000000";
-	if (num == 0)return ret;
-	string ans;
-	int x = 0;
-	while (num > 0)
-	{
-		x = num % 2;
-		num /= 2;
-		ans += ('0' + x);
-	}
-	if (twosComp) {
-		bool one = 0;
-		for (int i = 0; i < 10; i++) {
-			if (i >= ans.size())ans += '0';
-		}
-		for (int i = 0; i < ans.size(); i++)
-		{
-			if (ans[i] == '1' && !one) {
-				one = true;
-				continue;
-			}
-			if (!one)continue;
-			ans[i] = '0' + (ans[i] == '0');
-		}
-		reverse(ans.begin(), ans.end());
-		return ans;
-	}
-	reverse(ans.begin(), ans.end());
-	if (ans.size() > 16)return ans;
-	for (int i = (int)ans.size() - 1, j = 15; i >= 0; i--) {
-		ret[j] = ans[i];
-		j--;
-	}
-	return ret;
-}
 
 void MyAssembler::printIndexedVec()
 {
@@ -340,10 +326,10 @@ void MyAssembler::fillBranchJSRinstr()
 		int cp = branchesInstr[i].second;
 		int nxtInstr = labelsTable[lbl];
 		if (nxtInstr < cp) {
-			this->DataRam[cp] += int2Binary(cp - nxtInstr, Twos_Complement);
+			this->DataRam[cp] += Utils::int2Binary(cp - nxtInstr, Twos_Complement);
 		}
 		else {
-			string str = int2Binary(nxtInstr - cp, !Twos_Complement);
+			string str = Utils::int2Binary(nxtInstr - cp, !Twos_Complement);
 			this->DataRam[cp] += str.substr(6, str.size() - 6);
 		}
 	}
@@ -351,7 +337,7 @@ void MyAssembler::fillBranchJSRinstr()
 		string lbl = jsrInstr[i].first;
 		int cp = jsrInstr[i].second;
 		int nxtInstr = labelsTable[lbl];
-		this->DataRam[cp] += int2Binary(nxtInstr, !Twos_Complement);
+		this->DataRam[cp] += Utils::int2Binary(nxtInstr, !Twos_Complement);
 	}
 }
 
@@ -388,7 +374,7 @@ void MyAssembler::scanDataSegment()
 			syntaxError = true;
 			break;
 		}
-		string num = int2Binary(data, !Twos_Complement);
+		string num = Utils::int2Binary(data, !Twos_Complement);
 		while (num.size() < 32) {
 			num = "0" + num;
 		}
@@ -404,7 +390,7 @@ void MyAssembler::scanLables()
 	while (!this->codeFile.eof() && !syntaxError) {
 		getline(codeFile, line);
 		if (line == "")continue;
-		toUpperCase(line);
+		Utils::toUpperCase(line);
 		bool labelFound = false;
 		string lbl = "", instr = "";
 		int lstIndx = 0;

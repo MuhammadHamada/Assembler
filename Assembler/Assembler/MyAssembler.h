@@ -56,11 +56,9 @@ class MyAssembler
 									to know the addressing mode and the number
 									register
 									*/
-	void toUpperCase(string &str); /* convert any lower case letters to upper
-								   so the assembler is non-casesenstive
-								   */
+	
 
-	string int2Binary(int num, bool twosComp);
+	
 	void printIndexedVec();
 	void fillBranchJSRinstr(); // complete DataRam at branchesInstr && jsrInstr
 	void printDataRAM();
@@ -70,6 +68,7 @@ class MyAssembler
 public:
 	MyAssembler(string cfPath,string bcPath); // the path of the source code file
 	void run(); // run the Assembler :D
+	void convertToMemFile(string fpath);
 	bool get_syntaxError(); // getter of syntaxError
 	~MyAssembler();
 };
